@@ -442,6 +442,69 @@ describe('ngb-dropdown-toggle', () => {
     expect(dropdownEls[1]).toHaveCssClass('show');
   });
 
+  fdescribe('container', () => {
+
+    it('should be appended to the element matching the selector passed to "container"', () => {
+      const selector = 'body';
+      const html = `
+          <div ngbDropdown container="` +
+          selector + `">
+              <button ngbDropdownToggle>Toggle dropdown</button>
+              <div ngbDropdownMenu id="dropdown-menu" aria-labelledby="dropdownMenu1">
+                <a class="dropdown-item">Action</a>
+              </div>
+          </div>`;
+      const fixture = createTestComponent(html);
+      const compiled: HTMLElement = fixture.nativeElement;
+      const button = compiled.querySelector('button');
+      const dropdownMenu = compiled.querySelector('#dropdown-menu');
+
+      button.click();
+      fixture.detectChanges();
+      expect(compiled.querySelector('#dropdown-menu')).toBeNull();
+      expect(window.document.querySelector(selector + ' > #dropdown-menu')).not.toBeNull();
+    });
+
+    it('should properly destroy popovers when the "container" option is used', () => {
+      const selector = 'body';
+      const html = `
+          <div id="dropdown" ngbDropdown [open]="isOpen" container="` +
+          selector + `">
+              <button ngbDropdownToggle>Toggle dropdown</button>
+              <div ngbDropdownMenu id="dropdown-menu" aria-labelledby="dropdownMenu1">
+                <a class="dropdown-item">Action</a>
+              </div>
+          </div>`;
+      const fixture = createTestComponent(html);
+      const compiled: HTMLElement = fixture.nativeElement;
+      const button = compiled.querySelector('button');
+      const dropdownMenu = compiled.querySelector('#dropdown-menu');
+
+      // button.click();
+      fixture.componentInstance.isOpen = true;
+      fixture.detectChanges();
+
+      expect(window.document.querySelector(selector + ' > #dropdown-menu')).not.toBeNull();
+      console.log((compiled.querySelector('#dropdown').classList));
+
+      fixture.componentInstance.isOpen = false;
+      fixture.detectChanges();
+      console.log(compiled.querySelector('#dropdown-menu').parentElement);
+      console.log(window.document.querySelector(selector).tagName);
+      const tags = window.document.querySelector(selector).children;
+      const tagNames = [];
+      for(let i = 0; i < tags.length; i++){
+        let tag = tags[i];
+        tagNames.push(tag.className);
+      }
+      console.log(tagNames);
+
+      expect(compiled.querySelector('#dropdown-menu')).not.toBeNull();
+      expect(window.document.querySelector(selector + ' > #dropdown-menu')).toBeNull();
+    });
+
+  });
+
   describe('outside and inside clicks', () => {
 
     it('should not close on menu clicks when the "outside" option is used', () => {

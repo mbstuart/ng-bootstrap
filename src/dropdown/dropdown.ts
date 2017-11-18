@@ -9,10 +9,13 @@ import {
   ContentChild,
   NgZone,
   Renderer2,
-  OnInit
+  OnInit,
+  SimpleChanges,
+  SimpleChange
 } from '@angular/core';
 import {NgbDropdownConfig} from './dropdown-config';
 import {positionElements, PlacementArray, Placement} from '../util/positioning';
+import { OnChanges } from '@angular/core/src/metadata/lifecycle_hooks';
 
 /**
  */
@@ -22,14 +25,20 @@ export class NgbDropdownMenu {
   placement: Placement = 'bottom';
   isOpen = false;
 
+  private originalContainer: HTMLElement;
+
   constructor(
       @Inject(forwardRef(() => NgbDropdown)) public dropdown, private _elementRef: ElementRef,
       private _renderer: Renderer2) {}
 
   isEventFrom($event) { return this._elementRef.nativeElement.contains($event.target); }
 
-  position(triggerEl, placement) {
-    this.applyPlacement(positionElements(triggerEl, this._elementRef.nativeElement, placement));
+  position(triggerEl, placement, container: string) {
+    this.applyPlacement(positionElements(triggerEl, this._elementRef.nativeElement, placement, container === 'body'));
+
+    if (container === 'body') {
+      this.appendToContainer(container, triggerEl);
+    }
   }
 
   applyPlacement(_placement: Placement) {
@@ -47,6 +56,23 @@ export class NgbDropdownMenu {
       this._renderer.addClass(this._elementRef.nativeElement.parentElement, 'dropdown');
     }
   }
+
+  appendToContainer(container: string, triggerEl: HTMLElement) {
+    const el: HTMLElement = this._elementRef.nativeElement;
+    if (!this.originalContainer) {
+      this.originalContainer = el.parentElement;
+    }
+    console.log('original container: ' + this.originalContainer.classList);
+
+    window.document.querySelector(container).appendChild(el);
+  }
+
+  repatriate(triggerEl) {
+    console.log(this);
+    if (this.originalContainer) {
+      this.originalContainer.appendChild(this._elementRef.nativeElement);
+    }
+  };
 }
 
 /**
@@ -85,7 +111,7 @@ export class NgbDropdownToggle {
     '(document:click)': 'closeFromClick($event)'
   }
 })
-export class NgbDropdown implements OnInit {
+export class NgbDropdown implements OnInit, OnChanges {
   private _zoneSubscription: any;
 
   @ContentChild(NgbDropdownMenu) private _menu: NgbDropdownMenu;
@@ -100,6 +126,13 @@ export class NgbDropdown implements OnInit {
    * When it is 'inside' dropdowns are automatically on menu clicks but not on outside clicks.
    */
   @Input() autoClose: boolean | 'outside' | 'inside';
+
+  /**
+   * A selector specifying the element the popover should be appended to.
+   * Design imitates that used in popover.ts
+   * Currently only supports "body".
+   */
+  @Input() container: string;
 
   /**
    *  Defines whether or not the dropdown-menu is open initially.
@@ -132,6 +165,20 @@ export class NgbDropdown implements OnInit {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    let change: SimpleChange;
+    for (let changeKey in changes) {
+      if (changeKey === '_open') {
+        change = changes[changeKey];
+        if (!change.firstChange) {
+          if (!change.currentValue && this.container) {
+            this._repatriateMenu();
+          }
+        }
+      }
+    }
+  }
+
   /**
    * Checks if the dropdown menu is open or not.
    */
@@ -154,6 +201,9 @@ export class NgbDropdown implements OnInit {
   close(): void {
     if (this._open) {
       this._open = false;
+      if (this.container) {
+        this._repatriateMenu();
+      }
       this.openChange.emit(false);
     }
   }
@@ -195,7 +245,11 @@ export class NgbDropdown implements OnInit {
 
   private _positionMenu() {
     if (this.isOpen() && this._menu && this._toggle) {
-      this._menu.position(this._toggle.anchorEl, this.placement);
+      this._menu.position(this._toggle.anchorEl, this.placement, this.container);
     }
+  }
+
+  private _repatriateMenu() {
+    this._menu.repatriate(this._toggle.anchorEl);
   }
 }
