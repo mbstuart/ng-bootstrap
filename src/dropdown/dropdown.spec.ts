@@ -442,7 +442,19 @@ describe('ngb-dropdown-toggle', () => {
     expect(dropdownEls[1]).toHaveCssClass('show');
   });
 
-  fdescribe('container', () => {
+  describe('container', () => {
+
+    afterEach(() => {
+
+      // Make sure any loitering dropdown menus are removed from the body
+      const dropdownMenus = window.document.querySelectorAll('body > #dropdown-menu')
+
+      if (dropdownMenus) {
+        for (let i = 0; i < dropdownMenus.length; i++) {
+          dropdownMenus[i].remove();
+        }
+      }
+    });
 
     it('should be appended to the element matching the selector passed to "container"', () => {
       const selector = 'body';
@@ -450,7 +462,7 @@ describe('ngb-dropdown-toggle', () => {
           <div ngbDropdown container="` +
           selector + `">
               <button ngbDropdownToggle>Toggle dropdown</button>
-              <div ngbDropdownMenu id="dropdown-menu" aria-labelledby="dropdownMenu1">
+              <div ngbDropdownMenu id="dropdown-menu" class="first-test-menu" aria-labelledby="dropdownMenu1">
                 <a class="dropdown-item">Action</a>
               </div>
           </div>`;
@@ -465,11 +477,10 @@ describe('ngb-dropdown-toggle', () => {
       expect(window.document.querySelector(selector + ' > #dropdown-menu')).not.toBeNull();
     });
 
-    it('should properly destroy popovers when the "container" option is used', () => {
+    it('should properly destroy dropdown menu when the "container" option is used', () => {
       const selector = 'body';
       const html = `
-          <div id="dropdown" ngbDropdown [open]="isOpen" container="` +
-          selector + `">
+          <div id="dropdown" ngbDropdown [open]="isOpen" container="` + selector + `">
               <button ngbDropdownToggle>Toggle dropdown</button>
               <div ngbDropdownMenu id="dropdown-menu" aria-labelledby="dropdownMenu1">
                 <a class="dropdown-item">Action</a>
@@ -479,27 +490,40 @@ describe('ngb-dropdown-toggle', () => {
       const compiled: HTMLElement = fixture.nativeElement;
       const button = compiled.querySelector('button');
       const dropdownMenu = compiled.querySelector('#dropdown-menu');
-
       // button.click();
       fixture.componentInstance.isOpen = true;
+
       fixture.detectChanges();
 
       expect(window.document.querySelector(selector + ' > #dropdown-menu')).not.toBeNull();
-      console.log((compiled.querySelector('#dropdown').classList));
 
       fixture.componentInstance.isOpen = false;
       fixture.detectChanges();
-      console.log(compiled.querySelector('#dropdown-menu').parentElement);
-      console.log(window.document.querySelector(selector).tagName);
-      const tags = window.document.querySelector(selector).children;
-      const tagNames = [];
-      for(let i = 0; i < tags.length; i++){
-        let tag = tags[i];
-        tagNames.push(tag.className);
-      }
-      console.log(tagNames);
-
       expect(compiled.querySelector('#dropdown-menu')).not.toBeNull();
+      expect(window.document.querySelector(selector + ' > #dropdown-menu')).toBeNull();
+    });
+
+    it('should properly destroy dropdown menu when the "container" option is used, on destroying the dropdown itself', () => {
+      const selector = 'body';
+      const html = `
+          <div *ngIf="!toBeRemoved" id="dropdown" ngbDropdown [open]="isOpen" container="` + selector + `">
+              <button ngbDropdownToggle>Toggle dropdown</button>
+              <div ngbDropdownMenu id="dropdown-menu" aria-labelledby="dropdownMenu1">
+                <a class="dropdown-item">Action</a>
+              </div>
+          </div>`;
+      const fixture = createTestComponent(html);
+      const compiled: HTMLElement = fixture.nativeElement;
+      const button = compiled.querySelector('button');
+      const dropdownMenu = compiled.querySelector('#dropdown-menu');
+      // button.click();
+      fixture.componentInstance.isOpen = true;
+
+      fixture.detectChanges();
+
+      fixture.componentInstance.toBeRemoved = true;
+
+      fixture.detectChanges();
       expect(window.document.querySelector(selector + ' > #dropdown-menu')).toBeNull();
     });
 
@@ -631,6 +655,7 @@ describe('ngb-dropdown-toggle', () => {
 class TestComponent {
   isOpen = false;
   stateChanges = [];
+  toBeRemoved = false;
 
   recordStateChange($event) {
     this.stateChanges.push($event);

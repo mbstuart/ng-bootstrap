@@ -15,7 +15,7 @@ import {
 } from '@angular/core';
 import {NgbDropdownConfig} from './dropdown-config';
 import {positionElements, PlacementArray, Placement} from '../util/positioning';
-import { OnChanges } from '@angular/core/src/metadata/lifecycle_hooks';
+import { OnChanges, OnDestroy } from '@angular/core/src/metadata/lifecycle_hooks';
 
 /**
  */
@@ -62,13 +62,10 @@ export class NgbDropdownMenu {
     if (!this.originalContainer) {
       this.originalContainer = el.parentElement;
     }
-    console.log('original container: ' + this.originalContainer.classList);
-
     window.document.querySelector(container).appendChild(el);
   }
 
-  repatriate(triggerEl) {
-    console.log(this);
+  repatriate(container: string, triggerEl) {
     if (this.originalContainer) {
       this.originalContainer.appendChild(this._elementRef.nativeElement);
     }
@@ -111,7 +108,7 @@ export class NgbDropdownToggle {
     '(document:click)': 'closeFromClick($event)'
   }
 })
-export class NgbDropdown implements OnInit, OnChanges {
+export class NgbDropdown implements OnInit {
   private _zoneSubscription: any;
 
   @ContentChild(NgbDropdownMenu) private _menu: NgbDropdownMenu;
@@ -237,7 +234,12 @@ export class NgbDropdown implements OnInit, OnChanges {
     }
   }
 
-  ngOnDestroy() { this._zoneSubscription.unsubscribe(); }
+  ngOnDestroy() {
+    if (this.container) {
+      this._repatriateMenu();
+    }
+    this._zoneSubscription.unsubscribe();
+  }
 
   private _isEventFromToggle($event) { return this._toggle ? this._toggle.isEventFrom($event) : false; }
 
@@ -250,6 +252,7 @@ export class NgbDropdown implements OnInit, OnChanges {
   }
 
   private _repatriateMenu() {
-    this._menu.repatriate(this._toggle.anchorEl);
+    this._menu.repatriate(this.container, this._toggle.anchorEl);
   }
+
 }
