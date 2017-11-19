@@ -247,6 +247,7 @@ export class NgbDropdown implements OnInit {
 
   private _positionMenu() {
     if (this.isOpen() && this._menu && this._toggle) {
+
       this._menu.position(this._toggle.anchorEl, this.placement, this.container);
     }
   }
